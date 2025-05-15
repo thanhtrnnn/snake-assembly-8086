@@ -30,7 +30,7 @@
     menuOption1 DB "1. New Game$"
     menuOption2 DB "2. Settings$"
     menuOption3 DB "3. Exit$"
-    ; ---
+    ; ----
     
     ; --- Ingame --- 
     lives DB "LIVES:", 3, 3, 3 ; Lives display
