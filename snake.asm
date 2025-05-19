@@ -78,38 +78,41 @@
 
 .Code
 start:
-    MOV AX, @Data
-    MOV DS, AX
+    MOV AX, @Data ; Đưa địa chỉ đoạn Data vào AX
+    MOV DS, AX ; Gán lại vào thanh ghi DS để truy cập các biến trong Data
     
-    MOV AX, 0b800h
-    MOV ES, AX 
+    ; Thiết lập segment video để vẽ màn hình
+    MOV AX, 0b800h ; 0b800h - địa chỉ đầu của vùng nhớ video ở chế độ văn bản. 2byte: ký tự + màu
+    MOV ES, AX ; đưa địa chỉ video vào ES, dùng cho việc ghi dữ liệu ra màn hình
     
-    MOV AH, 0
-    MOV AL, 3
-    INT 10h ; Set 80x25 text mode
+    ; Đặt chế độ màn hình văn bản 80x25
+    MOV AH, 0 ; Hàm 0 của ngắt 10h: Đặt chế độ hiển thị
+    MOV AL, 3 ; Chế độ 3: Văn bản 80x25: 80 cột x 25 dòng, 16 màu
+    INT 10h ; ngắt bios để đổi chế độ, reset màn hình về chế độ text
         
-    ; DX commonly for position/location parameters
-    ; CX commonly for counts, sizes, or characteristics
-    MOV AH, 2
-    MOV DH, 10
-    MOV DL, 25
-    INT 10h
+    ; Đặt vị trí con trỏ văn bản
+    MOV AH, 2 ; Hàm 2 của ngắt 10h: đặt vị trí con trỏ nhấp nháy trên màn hình văn bản
+    MOV DH, 10 ; con trỏ ở dòng thứ 11, vì dòng đầu tiên là 0
+    MOV DL, 25 ; con trỏ ở cột thứ 26
+    INT 10h ; con trỏ chuyển đến vị trí (11, 26)
     
     CALL get_name
-    ; hide text cursor
-    MOV AH, 1
-    MOV CH, 2BH
-    MOV CL, 0BH
-    INT 10h    
+
+    ; Ẩn con trỏ nhấp nháy
+    MOV AH, 1 ; Hàm 1 của ngắt 10h: thay đổi hình dạng con trỏ văn bản
+    MOV CH, 2BH ; CH là dòng bắt đầu của con trỏ (0-15), 2BH = 43 > 15 -> ẩn con trỏ
+    MOV CL, 0BH ; CL là dòng kết thúc của con trỏ
+    INT 10h ; Thực hiện thay đổi hình dạng con trỏ dựa trên CH và CL
+    
     CALL main_menu
 
 start_again:
     CALL clearall
-    MOV position, start_position ; Reset snake position
-    CALL draw    
-    XOR CL, CL 
-    XOR DL, DL ; Clear input buffer
-    MOV DL, 'D' ; Default direction right
+    MOV position, start_position ; Reset vị trí của con rắn
+    CALL draw
+    XOR CL, CL ; Xoá thanh ghi CL, CL lưu hướng trước đó
+    XOR DL, DL ; Xoá thanh ghi DL, DL lưu hướng vừa thay đổi
+    MOV DL, 'D' ; Đặt hướng mặc định ban đầu là sang phải, nút 'D'
 
 game_loop: ; wait for input, validate and move
     MOV AH, 1       ; Check for keystroke
@@ -200,36 +203,38 @@ exit:
     MOV AH, 4CH
     INT 21h     
 
-; Get player name from user input
+; Nhập tên người chơi
 get_name PROC
     CALL clearall
 
-    ; Display name prompt
+    ; Hiển thị lời 'enter your name'
     prompt:
-        MOV AH, 2
+        MOV AH, 2 ; Đặt vị trí con trỏ nhấp nháy
         MOV DH, 10
-        MOV DL, 25
-        MOV BH, 0
-        INT 10h
-        ; Display name prompt    
-        MOV AH, 9
-        LEA DX, namePrompt
-        INT 21h
+        MOV DL, 25 ; vị trí (11,26)
+        MOV BH, 0 ; page video mặc định
+        INT 10h ; thực thi
+        
+        MOV AH, 9 ; in chuỗi ra màn hình
+        LEA DX, namePrompt ; DX trỏ tới chuỗi namePrompt
+        INT 21h ; thực hiện in
 
-    ; Get name input (max 15 chars)
-    XOR CX, CX
-    XOR SI, SI ; SI will be our index register
+    ; Nhập tên
+    XOR CX, CX ; xoá CX
+    XOR SI, SI ; SI dùng làm chỉ số cho mảng playerName
+    
+    ; Lặp nhập từng ký tự
     input_loop:
-        MOV AH, 1
+        MOV AH, 1 ; Đọc 1 ký tự từ bàn phím, lưu vào AL
         INT 21h
 
-        CMP AL, 8 ; Backspace
-        JE delete_char
+        CMP AL, 8 ; Kiểm tra ấn nút backspace (ASCII 8)
+        JE delete_char ; nhảy đến delete_char
         
-        CMP AL, 13 ; Check for Enter key
-        JE end_input
+        CMP AL, 13 ; Kiểm tra ấn nút enter (ASCII 13)
+        JE end_input ; Nếu bằng thì nhảy đến end_input
         
-        CMP CL, 15 ; Max name length
+        CMP CL, 15 ; Độ dài max có thể nhập
         JE input_loop
         
         MOV playerName[SI], AL ; Use SI for indexing
@@ -238,32 +243,51 @@ get_name PROC
         JMP input_loop
 
     delete_char:
-        DEC SI
-        DEC CL
-        CMP SI, 0 ; Don't go below 0
-        JE input_loop
-        JMP prompt
+        CMP SI, 0
+        JE input_loop       ; Không làm gì nếu chưa nhập gì
+
+        DEC SI              ; Lùi lại chỉ số mảng
+        DEC CL              ; Giảm số lượng ký tự đã nhập
+
+        ; Di chuyển con trỏ trái 1 cột
+        MOV AH, 2
+        MOV BH, 0
+        MOV DH, 10          ; Dòng nhập tên (giữ nguyên dòng)
+        MOV DL, 42          ; Cột = vị trí bắt đầu nhập + SI
+        ADD DX, SI
+        INT 10h
+
+        ; Ghi đè khoảng trắng để xoá ký tự
+        MOV AH, 0Eh
+        MOV AL, ' '
+        INT 10h
+
+        ; Di chuyển con trỏ lại vị trí đã xoá
+        DEC DL
+        MOV AH, 2
+        INT 10h
+
+        JMP input_loop
         
+    ; Kết thúc nhập
     end_input:
-        MOV nameLen, CL
-        ; Make sure the name is terminated properly
-        MOV playerName[SI], '$'
-        RET
+        MOV nameLen, CL ; Lưu độ dài tên vào biến nameLen
+        MOV playerName[SI], '$' ; Đặt '$' kết thúc chuỗi để hỗ trợ in bằng MOV AH, 9
+        RET ; trả về thủ tục gọi
 get_name ENDP
 
-; Display main menu with options
+; Hiển thị lựa chọn main_menu
 main_menu PROC
     CALL clearall
     
-    ; Display SNAKE ascii art title
-    ; REFERENCE
-    MOV DI, (3*80+25)*2
-    LEA SI, t0
-    MOV CX, 31
+    ; Hiển thị tiêu đề ASCII 'SNAKE'
+    MOV DI, (3*80+25)*2 ; Tính địa chỉ của ký tự, lưu vào DI
+    LEA SI, t0 ; Lấy địa chỉ dòng t0 lưu vào SI
+    MOV CX, 31 ; Số ký tự cần in là 31
     d0:
-        MOVSB
-        INC DI
-        LOOP d0
+        MOVSB ; Di chuyển 1 byte từ DS:SI đến ES:DI, SI += 1, DI += 1 -> chép ký tự từ t0 ra màn hình
+        INC DI ; Chỉ tăng địa chỉ DI lên 1 byte vì ko dùng thuộc tính màu
+        LOOP d0 ; lặp khi CX != 0
     
     MOV DI, (4*80+25)*2
     LEA SI, t1
@@ -305,22 +329,23 @@ main_menu PROC
         INC DI
         LOOP d5
     
-    ; Display welcome message with player name
-    MOV AH, 2
-    MOV DH, 10 
-    MOV DL, 25
-    MOV BH, 0
-    INT 10h
+    ; Hiển thị lời chào và tên người chơi
+    MOV AH, 2 ; Đặt vị trí con trỏ nhấp nháy
+    MOV DH, 10
+    MOV DL, 25 ; Đặt tại vị trí (11,26)
+    MOV BH, 0 ; page video mặc định
+    INT 10h ; thực thi
     
-    MOV AH, 9
-    LEA DX, welcome
-    INT 21h
+    MOV AH, 9 ; in chuỗi ký tự ra màn hình
+    LEA DX, welcome ; trỏ đến chuỗi welcome
+    INT 21h ; thực hiện in
     
     MOV AH, 9
     LEA DX, playerName
     INT 21h
     
-    ; Display menu options
+    ; Hiển thị các lựa chọn menu
+    ; macro dùng để in một dòng lựa chọn tại dòng col và cột 32
     printOpt MACRO col, opt
         MOV AH, 2
         MOV DH, col
@@ -336,9 +361,10 @@ main_menu PROC
     printOpt 13, menuOption2
     printOpt 14, menuOption3
     
+    ; Xử lý lựa chọn của người chơi
     menu_select:
         MOV AH, 0
-        INT 16h ; Wait for keypress
+        INT 16h ; Chờ người dùng bấm phím và lưu vào AL
         
         CMP AL, '1'
         JE start_game
@@ -350,17 +376,17 @@ main_menu PROC
         JE exit_game
 
         JMP menu_select
-        
+    
+    ; Xử lý từng lựa chọn
     start_game:
-        ; Reset totalScore for a brand new game
-        MOV totalScore, 0
-        RET
+        MOV totalScore, 0 ; reset điểm số về 0
+        RET ; Kết thúc thủ tục main_menu
         
     show_settings:
         CALL settings_menu
         JMP main_menu
         
-    exit_game:
+    exit_game: ; thoát chương trình
         MOV AH, 4CH
         INT 21h
         
@@ -785,15 +811,16 @@ game_over PROC
         JMP start_again
 ENDP
 
+; Xoá toàn bộ vùng hiển thị
 clearall PROC
-    MOV AH, 6 ; Scroll up (clear) window
-    MOV AL, 0 ; Clear entire window
-    MOV BH, 7 ; black background + light gray text
-    ; 80x25 window
-    MOV CX, 0 ; Upper left corner (0,0)
-    MOV DH, 24 ; Lower right row
-    MOV DL, 79 ; Lower right column
-    INT 10h
+    MOV AH, 6 ; Hàm 6 trong ngắt 10h: scroll up màn hình
+    MOV AL, 0 ; bios xoá toàn bộ vùng chọn bằng ký tự rỗng
+    MOV BH, 7 ; Đặt thuộc tính màu sau khi xoá vùng hiển thị: nền đen (0) và chữ xám sáng (7)
+    
+    MOV CX, 0 ; Bắt đầu từ vị trí góc trên bên trái (0,0)
+    MOV DH, 24 
+    MOV DL, 79 ; Kết thúc ở vị trí góc dưới bên phải (25,80)
+    INT 10h ; thực hiện xoá
     RET
 ENDP
 
