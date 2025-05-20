@@ -825,116 +825,118 @@ clearall PROC
 ENDP
 
 ; Settings menu
-settings_menu PROC
+settings_menu PROC ; Hiển thị menu Settings
     CALL clearall
     
-    ; Display title
-    MOV AH, 2
-    MOV DH, 5
-    MOV DL, 35
-    MOV BH, 0
-    INT 10h
+    ; Display title         ; Hiển thị tiêu đề menu
+    MOV AH, 2               ; Hàm INT 10h chức năng 2: Đặt vị trí con trỏ
+    MOV DH, 5               ; Dòng 5
+    MOV DL, 35              ; Cột 35 
+    MOV BH, 0               ; Trang video 0
+    INT 10h                 ; Gọi ngắt BIOS
     
-    MOV AH, 9
-    LEA DX, settingsTitle
-    INT 21h
+    MOV AH, 9               ; Hàm INT 21h chức năng 9: In chuỗi kết thúc bằng '$'
+    LEA DX, settingsTitle   ; Nạp địa chỉ chuỗi tiêu đề vào DX 
+    INT 21h                 ; Gọi ngắt DOS để in chuỗi
     
-    ; Display difficulty option
-    MOV AH, 2
-    MOV DH, 8
-    MOV DL, 30
-    INT 10h
+    ; Display difficulty option ; Hiển thị tuỳ chọn độ khó
+    MOV AH, 2               ; Đặt vị trí con trỏ
+    MOV DH, 8               ; Dòng 8
+    MOV DL, 30              ; Cột 30
+    INT 10h                 ; Gọi ngắt BIOS
     
-    MOV AH, 9
-    LEA DX, difficultyOption
-    INT 21h
+    MOV AH, 9               ; In chuỗi kết thúc bằng '$'         
+    LEA DX, difficultyOption; Nạp địa chỉ chuỗi "Difficult: " vào DX
+    INT 21h                 ; Gọi ngắt DOS để in chuỗi
     
-    ; Display current difficulty
-    MOV AH, 9
-    CMP difficultyLevel, 1
-    JE show_easy
+    ; Display current difficulty ; Hiển thị độ khó hiện tại
+    MOV AH, 9               ; Hàm INT 21h chức năng 9: In chuỗi kết thúc bằng '$'
+    CMP difficultyLevel, 1  
+    JE show_easy            ; Nếu difficultyLevel = 1 --> Dễ
     CMP difficultyLevel, 2
-    JE show_medium
-    JMP show_hard
+    JE show_medium          ; Nếu difficultyLevel = 2 --> Trung bình
+    JMP show_hard           ; Mặc định còn lại là khó
     
     show_easy:
-        LEA DX, difficultyEasy
-        INT 21h
-        JMP show_controls
+        LEA DX, difficultyEasy   ; Nạp địa chỉ chuỗi 'Easy'
+        INT 21h                  ; Gọi ngắt DOS để in chuỗi
+        JMP show_controls        ; Nhảy sang chế độ show_controls
         
     show_medium:
-        LEA DX, difficultyMedium
-        INT 21h
-        JMP show_controls
+        LEA DX, difficultyMedium ; Nạp địa chỉ chuỗi 'Medium'
+        INT 21h                  ; Gọi ngắt DOS để in chuỗi
+        JMP show_controls        ; Nhảy sang chế độ show_controls
         
     show_hard:
-        LEA DX, difficultyHard
-        INT 21h
+        LEA DX, difficultyHard   ; Nạp địa chỉ chuỗi 'Hard'
+        INT 21h                  ; Gọi ngắt DOS để in chuỗi
     
     show_controls:
         ; Display controls info
-        MOV AH, 2
-        MOV DH, 10
-        MOV DL, 25
-        INT 10h
+        MOV AH, 2               ; Đặt vị trí con trỏ
+        MOV DH, 10              ; Dòng 10
+        MOV DL, 25              ; Cột 25
+        INT 10h                 ; Gọi BIOS để di chuyển con trỏ đến vị trí (10, 25)
         
-        MOV AH, 9
-        LEA DX, controlsOption
-        INT 21h
+        MOV AH, 9               ; In ra chuỗi kết thúc bằng '$'
+        LEA DX, controlsOption  ; Nạp địa chỉ chuỗi 'Controls: WASD to move, ESC for menu' vào thanh ghi DX
+        INT 21h                 ; Gọi ngắt DOS để in chuỗi
         
         ; Display instructions
-        MOV AH, 2
-        MOV DH, 12
-        MOV DL, 25
-        INT 10h
+        MOV AH, 2               ; Đặt vị trí con trỏ
+        MOV DH, 12              ; Dòng 12
+        MOV DL, 25              ; Cột 25
+        INT 10h                 ; Gọi BIOS để di chuyển con trỏ đến vị trí (12, 25)
         
-        MOV AH, 9
-        LEA DX, backOption
-        INT 21h
+        MOV AH, 9               ; In ra chuỗi kết thúc bằng '$'
+        LEA DX, backOption      ; Nạp địa chỉ chuỗi vào thanh ghi DX
+        INT 21h                 ; Gọi ngắt DOS để in chuỗi
         
-        MOV AH, 2
+        MOV AH, 2               
         MOV DH, 14
         MOV DL, 25
         INT 10h
+        ; --> Di chuyển con trỏ đến vị trí (14, 25)             
         
         ; Display difficulty change option
         MOV AH, 9
         LEA DX, changeDiffOption
         INT 21h
+        ; --> In ra nội dung chuỗi trong changeDiffOption
 
       settings_input:
         MOV AH, 0     ; Wait for keypress (blocking)
         INT 16h       ; Get keypress
         
-        CMP AL, '1'
-        JE set_easy
+        CMP AL, '1'   
+        JE set_easy        ; Nếu AL = 1 nhảy sang chế độ set_easy
         
         CMP AL, '2'
-        JE set_medium
+        JE set_medium      ; Nếu AL = 2 nhảy sang chế độ set_medium
         
         CMP AL, '3'
-        JE set_hard
+        JE set_hard        ; Nếu AL = 3 nhảy sang chế độ set_hard
         
-        CMP AL, 27 ; ESC key
-        JE exit_settings
+        CMP AL, 27          
+        JE exit_settings   ; Nếu AL = 27 (người dùng nhấn ESC - ASCII = 27) thoát khỏi chế độ settings
         
-        JMP settings_input
+        JMP settings_input ; Auto nhảy về lại setttings_input nếu người dùng không nhập lựa chọn nào ở trên
         
     set_easy:
-        MOV difficultyLevel, 1
-        JMP settings_menu
+        MOV difficultyLevel, 1 ; Gán độ khó = 1 (Easy)
+        JMP settings_menu      ; Quay lại menu
         
     set_medium:
-        MOV difficultyLevel, 2
-        JMP settings_menu
+        MOV difficultyLevel, 2 ; Gán độ khó = 2 (Medium)
+        JMP settings_menu      ; Quay lại menu
         
     set_hard:
-        MOV difficultyLevel, 3
-        JMP settings_menu
+        MOV difficultyLevel, 3 ; Gán độ khó = 3 (Hard)
+        JMP settings_menu      ; Quay lại menu
         
     exit_settings:
-        RET
-settings_menu ENDP
+        RET                    ; Kết thúc thủ tục và quay về chương trình gọi
+settings_menu ENDP ; Kết thúc thủ tục settings_menu
 
 ; Delay based on difficulty level
 delays PROC
