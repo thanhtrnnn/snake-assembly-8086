@@ -30,7 +30,7 @@
     menuOption1 DB "1. New Game$"
     menuOption2 DB "2. Settings$"
     menuOption3 DB "3. Exit$"
-    ; ----
+    ; ---
     
     ; --- Ingame --- 
     lives DB "LIVES:", 3, 3, 3 ; Lives display
@@ -755,16 +755,18 @@ ENDP
 
 
 game_over PROC
-    XOR AX, AX
-    MOV AL, totalScore
+    XOR AX, AX             ; xoá thanh ghi AX
+    MOV AL, totalScore     ; lưu điểm vào thanh ghi AL để in ra màn hình
     MOV lives[BX+5], 0
+    ; in lives của người chơi ra màn hình
     LEA SI, lives
     MOV DI, 130
     MOV CX, 9
     CALL livesDisplay
     
-    ; Display game over
-    MOV DI, (10*80+35)*2
+    ;hiển thị gameover
+    MOV DI, (10*80+35)*2   ; tính vị trí in trên màn hình (hàng 10, cột 35)
+    ; in chuỗi "Game Over" ra màn hình
     LEA SI, gameOver
     MOV CX, 9
     loop1:
@@ -773,8 +775,9 @@ game_over PROC
         LOOP loop1
     
     
-    ; Display restart option    
-    MOV DI, (12*80+30)*2
+    ; hiển thị restart    
+    MOV DI, (12*80+30)*2.   ; tính vị trí in trên màn hình (hàng 12, cột 30)
+    ; in chuỗi "Restart ? (y / n)" ra màn hình
     LEA SI, endtxt
     MOV CX, 17
     loop2:
@@ -782,7 +785,7 @@ game_over PROC
         INC DI
         LOOP loop2 
     
-    ; Reset game stats for next game
+    ; đặt lại các hiển thị lives, livesleft, dộ dài snake để bắt đầu lượt chơi mới
     MOV lives[6], 3 
     MOV lives[7], 3
     MOV lives[8], 3
@@ -790,24 +793,27 @@ game_over PROC
     MOV snakeLen, 1
     
     option:         
-        MOV AH, 7
+        MOV AH, 7.          ; đọc một ký tự từ bàn phím nhưng không hiển thị lên màn hình
         INT 21h
+        ; nhận được ký tự 'y' thì nhảy đến restart
         CMP AL, 'y'   
         JE restart_game
+        ; nhận được ký tự 'n' thì nhảy đến start_new_game  
         CMP AL, 'n'
         JE start_new_game        
+        ; nhận được bất kỳ ký tự nào khác thì quay về option hỏi laị người chơi
         JMP option
         
     restart_game:
-        ; Reset score but keep totalScore for accumulated score
+        ; đặt lại totalScore = 0 và bắt đầu lượt chơi mới 
         MOV totalScore, 0
         JMP start_again
         
     start_new_game:
-        ; Reset score and start completely new game with new name
+        ; đặt lại totalScore=0 và bắt đầu lại game từ bước nhập username
         MOV totalScore, 0
-        CALL get_name
-        CALL main_menu
+        CALL get_name        ; nhập username
+        CALL main_menu       ; chuyển đến menu cài đặt lại mode game
         JMP start_again
 ENDP
 
