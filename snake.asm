@@ -527,33 +527,32 @@ shift PROC
     POP AX
     RET
 ENDP
-
-eat_food PROC ; Check snake collisions with food, walls, and itself
+;Hàm này kiểm tra xem đầu rắn đã va chạm với thứ gì sau khi di chuyển
+eat_food PROC 
     PUSH AX 
     PUSH CX 
     
-    MOV DI, position 
-    ES: CMP [DI], 0 
+    MOV DI, position ; lưu vị trí đầu của rắng vào DI
+    ES: CMP [DI], 0
     JZ no
-    ES: CMP [DI], 20h
+    ES: CMP [DI], 20h ; Kiểm tra xem có phải là khoảng trống không(20H)
     JZ wall
-    ES: CMP [DI], '*'
+    ES: CMP [DI], '*' ; Kiểm tra xem có phải là thức ăn không
     JE addfood
-    ES: CMP [DI], '#'
-    JE wallKnock ; Obstacle collision
-    JNE wallKnock ; Self collision
-    
+    ES: CMP [DI], '#'  ; Kiểm tra xem có phải là chướng ngại vật không
+    JE wallKnock 
+    JNE wallKnock ; Nếu không rơi vào các trường hợp trên thì đã va chạm với thân rắn
     addfood:
-        INC totalScore  ; Increment total score for accumulated scoring
-        MOV foods, 0 
-        XOR BH, BH
-        MOV BL, snakeLen
-        MOV snake[BX], 'o'
-        ES: MOV [DI], 0
-        ADD snakeLen, 1 
-        CALL print_score
-        CALL place_food
-        JMP no
+        INC totalScore  ; Tăng Điểm
+        MOV foods, 0 ; Reset foods (food position).
+        XOR BH, BH 
+        MOV BL, snakeLen 
+        MOV snake[BX], 'o' ; Thêm một thành phần mới vào thân rắn (ký tự : 'o')
+        ES: MOV [DI], 0 ; Xóa ký tự thức ăn cũ 
+        ADD snakeLen, 1 ; Tăng chiều dài rắn lên 1
+        CALL print_score ; In lại điểm số
+        CALL place_food ; Đặt thức ăn mới
+        JMP no ; Jump to no to finish.
         
     wall: ; Wall collision check
         CMP DI, 320 
@@ -561,30 +560,30 @@ eat_food PROC ; Check snake collisions with food, walls, and itself
         CMP DI, 3840
         JAE wallKnock ; Bottom wall
         MOV AX, DI
-        MOV BL, 160
+        MOV BL, 160 
         DIV BL
-        CMP AH, 0
+        CMP AH, 0 ; column 0
         JZ wallKnock ; Left wall
         MOV AX, DI
         ADD AX, 2
         MOV BL, 160
         DIV BL
-        CMP AH, 0
+        CMP AH, 0 ; column 79
         JZ wallKnock ; Right wall
         JMP no
         
     wallKnock: ; Handle collision
-        XOR BH, BH
+        XOR BH, BH 
         MOV BL, livesLeft
         SUB livesLeft, 1
         CMP livesLeft, 0
-        JNZ rest
+        JNZ rest ; livesLeft > 0, restart
         POP CX
         POP AX
         CALL game_over 
         
     rest: ; Restart with one less life
-        MOV lives[BX+5], 0
+        MOV lives[BX+5], 0 ;  BX = ? → lives[?  + 5] = 0 (xoá mạng hiển thị)
         POP CX
         POP AX
         CALL restart
@@ -597,52 +596,52 @@ ENDP
 
 
 place_food PROC ; Place food at random position
-    PUSH AX
+    PUSH AX ; Lưu lại giá trị tạm th
     PUSH DX
-    
+
     lap:    
         MOV AH, 00h
-        INT 1AH ; Get system time in DX (clock ticks since midnight)
-        
+        INT 1AH ; Sử dụng BIOS interrupt 1AH để lấy thời gian hệ thống(số tích đồng hồ từ nửa đêm)
+        ; lưu tại thanh ghi CX:DX
         MOV AX, DX
         XOR DX, DX
-        DIV map
-        ADD DX, 2*(80*2 + 1) ; Inside the playable area
+        DIV map ; map = 3500, lấy giá trị random chia cho map, dư ra DX
+        ADD DX, 2*(80*2 + 1) ; Cộng thêm giá trị đảm bảo vị trí thức ăn nằm trong vùng chơi
         MOV BX, DX 
-        
+        ; Đảm bảo vị trí thức ăn là số chẵn ( mỗi ô chiếm 2 byte) để không bị lệch
         MOV AX, DX  
         XOR DX, DX
         DIV two
         CMP DX, 0
-        JNE lap
+        JNE lap ; nếu lẻ quay lại random
         
-    ; Check if food is at column boundary
+    ; Kiểm tra vị trí thức ăn có sát biên không
     XOR DX, DX 
     MOV AX, BX
-    DIV endline
-    CMP DX, 0
+    DIV endline ; endline = 160 ( 80 cột  * 2 bytes)  BX = BX / 160 (dư DX)
+    CMP DX, 0 ; Nếu sát biên trái(DX = 0) nhảy tới in left
     JE inleft
     
     XOR DX, DX    
     MOV AX, BX
     ADD AX, 4
     DIV endline
-    CMP DX, 0
+    CMP DX, 0 ; Nếu sát biên phải(DX = 0) nhảy tới in right
     JE inright
 
-    inleft:
+    inleft: ; nếu sát biên trái dịch vào 1 ô
         ADD BX, 2
         JMP place
         
-    inright:
+    inright: ; nếu sát biên phải dịch vào 1 ô
         SUB BX, 2
         
-    place:    
+    place:    ; đặt thức ăn '*' vào vị trí được lưu tại BX
         ES: MOV [BX], '*'
         MOV foods, BX
         
     POP DX
-    POP AX 
+    POP AX ; trả lại giá trị cho thanh ghi
     RET
 place_food ENDP
 
@@ -716,14 +715,14 @@ print_score PROC
     INT 10h ; di chuyen con tro ve vi tri (0, 0)
     
     MOV AH, 9
-    LEA DX, scoreString
-    INT 21h
+    LEA DX, scoreString 
+    INT 21h ; In chuỗi "SCORE: " ra màn hình
     
     MOV AX, 0
     MOV AL, totalScore  ; Use totalScore for display
     MOV CX, 0
     MOV BX, 10
-    PUSH_STACK:
+    PUSH_STACK: ; Chuyển số sang chuỗi 
         MOV DX, 0
         DIV BX
         INC CX
@@ -739,7 +738,7 @@ print_score PROC
         INT 21h
         LOOP POP_STACK 
     RET
-print_score ENDP
+print_score ENDP 
 
 
 
