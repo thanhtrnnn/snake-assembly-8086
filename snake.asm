@@ -402,106 +402,108 @@ draw PROC ; Draw game screen with border, score, lives, snake and food
     CALL print_score
     
     ; Display lives
-    LEA SI, lives
-    MOV DI, 130
-    MOV CX, 9
-    livesDisplay:
+    LEA SI, lives ; nap bien 'lives' vao SI
+    MOV DI, 130 ; gan vi tri hien thi 'lives'
+    MOV CX, 9 ; so ky tu mang song can hien thi
+    livesDisplay: ; vong lap hien thi cac lives con lai
         MOVSB
-        INC DI 
-        LOOP livesDisplay
+        INC DI ; +1 -> di chuyen sang o nho tiep theo
+        LOOP livesDisplay ; lap den khi CX = 0
     
     ; Display player name
-    MOV AH, 2
-    MOV DH, 0
-    MOV DL, 35
-    MOV BH, 0
-    INT 10h
+    ; di chuyen con tro den vi tri mong muon
+    MOV AH, 2 ; dinh vi con tro
+    MOV DH, 0 ; dong(row) = 0
+    MOV DL, 35 ; cot(column) = 35
+    MOV BH, 0 ; trang hien thi = 0 
+    INT 10h ; ngat bios video de dinh vi con tro
     
+    ; in ten nguoi chs tai vi tri do
     MOV AH, 9
-    LEA DX, playerName
-    INT 21h
+    LEA DX, playerName ; nap dia chi ten ng chs vao DX
+    INT 21h ; goi ngat DOS de in chuoi
     
     ; Draw snake
-    XOR DX, DX 
-    MOV DI, position
-    MOV DL, snake 
-    ES: MOV [DI], DL
+    XOR DX, DX ; dat DX=0 
+    MOV DI, position ; gan vi tri con ran dc spawn
+    MOV DL, snake ; gan ky tu dai dien con ran vao DL
+    ES: MOV [DI], DL ; ve ky tu con ran len man hinh
     
-    ; Draw obstacles
+    ; Draw obstacles ; ve chuong ngai vat - hai thanh ngang
     ; Above line 1
-    MOV CL, len1
-    MOV DI, line1
-    ADD DI, DI ; 2 bytes per cell
+    MOV CL, len1 ; lay do dai dong vat can 1 vao CL
+    MOV DI, line1 ; gan vi tri dong vat can 1 vao DI
+    ADD DI, DI ; nhan doi vi moi o ky tu chiem 2 byte trong van ban 
     draw_obs1:
-        MOV AL, '#'
-        ES: MOV [DI], AL
-        ADD DI, 2
-        LOOP draw_obs1
+        MOV AL, '#' ; dung ky tu # lam vat can
+        ES: MOV [DI], AL ; ghi ky tu vat can vao bo nho video
+        ADD DI, 2 ; nhay sang o tiep theo (2 byte)
+        LOOP draw_obs1 ; lap cho den khi CL = 0
     ; Below line 2
-    MOV CL, len2
-    MOV DI, line2
-    ADD DI, DI
+    MOV CL, len2 ; lay do dai dong vat can 2 vao CL
+    MOV DI, line2 ; gan vi tri dong vat can 2 vao DI
+    ADD DI, DI ; nhan doi vi moi o ky tu chiem 2 byte trong van ban 
     draw_obs2:
-        MOV AL, '#'
-        ES: MOV [DI], AL
-        ADD DI, 2
-        LOOP draw_obs2
+        MOV AL, '#'; dung ky tu # lam vat can
+        ES: MOV [DI], AL ; ghi ky tu vat can vao bo nho video
+        ADD DI, 2 ; nhay sang o tiep theo (2 byte)
+        LOOP draw_obs2 ; lap cho den khi CL = 0
         
     ; Place food
-    CALL place_food
-    RET
-draw ENDP
+    CALL place_food ; goi ham dat thuc an tren man hinh
+    RET ; tro ve sau khi hoan tat ve man hinh
+draw ENDP ; ket thuc thu tuc ve man hinh
 
-; Snake movement procedures
-; Move left
+; Snake movement procedures ; cac thu tuc di chuyen ran
+; Move left ; di chuyen sang trai
 left PROC
-    PUSH DX 
-    CALL shift
-    SUB position, 2
+    PUSH DX ; luu gia tri DX (tam thoi)
+    CALL shift ; dich chuyen than ran sang huong moi
+    SUB position, 2 ; di chuyen sang trai ( giam 2 byte )
     
-    CALL eat_food
-    CALL move_snake
-    CALL delays
-    POP DX
+    CALL eat_food ; kiem tra neu dau ran dung vao thuc an
+    CALL move_snake ; ve lai ran
+    CALL delays ; tao do tre dieu khien toc do ran
+    POP DX ; khoi phuc lai gia tri DX
     RET    
 ENDP
 
-; Move right
+; Move right ; di chuyen sang phai
 right PROC
-    PUSH DX 
-    CALL shift
-    ADD position, 2
+    PUSH DX  ; luu gia tri DX (tam thoi)
+    CALL shift ; dich chuyen than ran sang huong moi
+    ADD position, 2 ; di chuyen sang phai ( tang 2 byte )
     
-    CALL eat_food
-    CALL move_snake 
-    CALL delays
-    POP DX
+    CALL eat_food ; kiem tra neu dau ran dung vao thuc an
+    CALL move_snake ; ve lai ran 
+    CALL delays ; tao do tre dieu khien toc do ran
+    POP DX ; khoi phuc lai gia tri DX
     RET    
 ENDP
 
-; Move up
+; Move up ; di chuyen len tren
 up PROC
-    PUSH DX 
-    CALL shift
-    SUB position, 160 ; 80 columns * 2 bytes per cell
+    PUSH DX ; luu gia tri DX (tam thoi)
+    CALL shift ; dich chuyen than ran sang huong moi
+    SUB position, 160 ; len 1 hang = 80 columns * 2 bytes 
     
-    CALL eat_food
-    CALL move_snake
-    CALL delays
-    POP DX
+    CALL eat_food ; kiem tra neu dau ran dung vao thuc an
+    CALL move_snake ; ve lai ran
+    CALL delays ; tao do tre dieu khien toc do ran
+    POP DX ; khoi phuc lai gia tri DX
     RET    
 ENDP
 
 ; Move down
 down PROC
-    PUSH DX 
-    CALL shift
-    ADD position, 160 ; 80 columns * 2 bytes per cell
+    PUSH DX ; luu gia tri DX (tam thoi)
+    CALL shift ; dich chuyen than ran sang huong moi
+    ADD position, 160 ; xuong 1 hang = 80 columns * 2 bytes 
     
-    CALL eat_food
-    CALL move_snake
-    CALL delays
-    POP DX
+    CALL eat_food ; kiem tra neu dau ran dung vao thuc an
+    CALL move_snake ; ve lai ran
+    CALL delays ; tao do tre dieu khien toc do ran
+    POP DX ; khoi phuc lai gia tri DX
     RET    
 ENDP
 
