@@ -114,57 +114,57 @@ start_again:
     XOR DL, DL ; Xoá thanh ghi DL, DL lưu hướng vừa thay đổi
     MOV DL, 'D' ; Đặt hướng mặc định ban đầu là sang phải, nút 'D'
 
-game_loop: ; wait for input, validate and move
-    MOV AH, 1       ; Check for keystroke
+game_loop: ; Chờ nhập liệu, xác thực và di chuyển
+    MOV AH, 1       ; Kiểm tra xem có phím nào được nhấn không
     INT 16H
-    JZ decide_move  ; No key pressed, ZF = 0, use current DL (which holds last direction/ default)
+    JZ decide_move  ; Không có phím nào được nhấn (ZF=1), sử dụng DL hiện tại (chứa hướng cuối cùng/mặc định)
 
-    MOV AH, 0       ; Key was pressed, get it
+    MOV AH, 0       ; Có phím được nhấn, lấy mã phím
     INT 16H
-    AND AL, 0DFH    ; Convert to uppercase, unset 6th bit and preserve the rest (0DFh = 11011111b)
+    AND AL, 0DFH    ; Chuyển thành chữ hoa (xóa bit 5, 0DFh = 11011111b)
 
-    CMP AL, 27      ; ESC key?
+    CMP AL, 27      ; Phím ESC?
     JE return_to_menu
 
-    ; AL has the new potential direction
-    ; CL has the last ACTUAL direction moved (from previous move_... call)
-    ; DL has the current direction (will be updated if AL is valid and not opposite)
+    ; AL chứa hướng tiềm năng mới
+    ; CL chứa hướng THỰC TẾ cuối cùng đã di chuyển (từ lần gọi move_... trước đó)
+    ; DL chứa hướng hiện tại (sẽ được cập nhật nếu AL hợp lệ và không phải là hướng ngược lại)
 
-    ; Check W key ('Up')
+    ; Kiểm tra phím W ('Lên')
     CMP AL, 'W'
     JNE checkDown
-    CMP CL, 'S'     ; Was last move 'S' (Down)?
-    JE decide_move  ; Yes, 'W' is opposite, so ignore AL, keep current DL
-    MOV DL, 'W'     ; No, update DL to 'W'
+    CMP CL, 'S'     ; Lần di chuyển cuối có phải là 'S' (Xuống) không?
+    JE decide_move  ; Có, 'W' là hướng ngược lại, bỏ qua AL, giữ DL hiện tại
+    MOV DL, 'W'     ; Không, cập nhật DL thành 'W'
     JMP decide_move
 
 checkDown:
-    CMP AL, 'S'     ; Check S key ('Down')
+    CMP AL, 'S'     ; Kiểm tra phím S ('Xuống')
     JNE checkLeft
-    CMP CL, 'W'     ; Was last move 'W' (Up)?
-    JE decide_move  ; Yes, 'S' is opposite
-    MOV DL, 'S'     ; No, update DL to 'S'
+    CMP CL, 'W'     ; Lần di chuyển cuối có phải là 'W' (Lên) không?
+    JE decide_move  ; Có, 'S' là hướng ngược lại
+    MOV DL, 'S'     ; Không, cập nhật DL thành 'S'
     JMP decide_move
 
 checkLeft:
-    CMP AL, 'A'     ; Check A key ('Left')
+    CMP AL, 'A'     ; Kiểm tra phím A ('Trái')
     JNE checkRight
-    CMP CL, 'D'     ; Was last move 'D' (Right)?
-    JE decide_move  ; Yes, 'A' is opposite
-    MOV DL, 'A'     ; No, update DL to 'A'
+    CMP CL, 'D'     ; Lần di chuyển cuối có phải là 'D' (Phải) không?
+    JE decide_move  ; Có, 'A' là hướng ngược lại
+    MOV DL, 'A'     ; Không, cập nhật DL thành 'A'
     JMP decide_move
 
 checkRight:
-    CMP AL, 'D'     ; Check D key ('Right')
-    JNE decide_move ; Not 'D', so not a valid direction key for this check path
-    CMP CL, 'A'     ; Was last move 'A' (Left)?
-    JE decide_move  ; Yes, 'D' is opposite
-    MOV DL, 'D'     ; No, update DL to 'D'
+    CMP AL, 'D'     ; Kiểm tra phím D ('Phải')
+    JNE decide_move ; Không phải 'D', vậy không phải là phím hướng hợp lệ cho nhánh kiểm tra này
+    CMP CL, 'A'     ; Lần di chuyển cuối có phải là 'A' (Trái) không?
+    JE decide_move  ; Có, 'D' là hướng ngược lại
+    MOV DL, 'D'     ; Không, cập nhật DL thành 'D'
     JMP decide_move
 
 decide_move:
-    ; DL now contains the direction to move (either newly set, previous, or default)
-    ; CL will be updated with DL after the move in the respective move_... procedure
+    ; DL bây giờ chứa hướng di chuyển (mới được đặt, trước đó, hoặc mặc định)
+    ; CL sẽ được cập nhật với DL sau khi di chuyển trong thủ tục move_... tương ứng
     CMP DL, 'A'
     JE move_left
     CMP DL, 'D'
@@ -173,29 +173,29 @@ decide_move:
     JE move_up
     CMP DL, 'S'
     JE move_down
-    JMP game_loop ; Fallback, should not be reached if DL is always valid
+    JMP game_loop ; nếu DL luôn hợp lệ, không chạy đến dòng này
     
 move_left:
     CALL left
-    MOV CL, DL ; Save direction for next cycle
+    MOV CL, DL ; Lưu hướng cho lần di chuyển tới
     JMP game_loop
     
 move_right:
     CALL right
-    MOV CL, DL ; Save direction for next cycle
+    MOV CL, DL ; Lưu hướng cho lần di chuyển tới
     JMP game_loop
     
 move_up:
     CALL up
-    MOV CL, DL ; Save direction for next cycle
+    MOV CL, DL ; Lưu hướng cho lần di chuyển tới
     JMP game_loop
     
 move_down:
     CALL down
-    MOV CL, DL ; Save direction for next cycle
+    MOV CL, DL ; Lưu hướng cho lần di chuyển tới
     JMP game_loop
     
-return_to_menu:
+return_to_menu: ; Quay lại menu chính
     CALL main_menu
     JMP start_again
 
@@ -289,6 +289,7 @@ main_menu PROC
         INC DI ; Chỉ tăng địa chỉ DI lên 1 byte vì ko dùng thuộc tính màu
         LOOP d0 ; lặp khi CX != 0
     
+    ; Tương tự cho các dòng còn lại của tiêu đề
     MOV DI, (4*80+25)*2
     LEA SI, t1
     MOV CX, 31
@@ -357,6 +358,7 @@ main_menu PROC
         INT 21h
     ENDM
     
+    ; gọi macro để in các lựa chọn menu tại dòng 12, 13, 14 & cột 32
     printOpt 12, menuOption1
     printOpt 13, menuOption2
     printOpt 14, menuOption3
@@ -367,15 +369,15 @@ main_menu PROC
         INT 16h ; Chờ người dùng bấm phím và lưu vào AL
         
         CMP AL, '1'
-        JE start_game
+        JE start_game ; bắt đầu trò chơi
         
         CMP AL, '2'
-        JE show_settings
+        JE show_settings ; hiển thị menu cài đặt
         
         CMP AL, '3'
-        JE exit_game
+        JE exit_game ; thoát trò chơi
 
-        JMP menu_select
+        JMP menu_select ; nếu không nhấn 1,2,3 thì quay lại menu_select
     
     ; Xử lý từng lựa chọn
     start_game:
@@ -393,15 +395,15 @@ main_menu PROC
     RET
 main_menu ENDP
 
-;Game screen 
-draw PROC ; Draw game screen with border, score, lives, snake and food
-    ; Draw border
+; Giao diện chính màn chơi
+draw PROC ; Vẽ đường biên, con rắn, mồi, điểm số và mạng còn lại
+    ; Vẽ đường biên
     CALL border 
 
-    ; Display score
+    ; Hiển thị điểm số
     CALL print_score
     
-    ; Display lives
+    ; Hiển thị mạng còn lại
     LEA SI, lives ; nap bien 'lives' vao SI
     MOV DI, 130 ; gan vi tri hien thi 'lives'
     MOV CX, 9 ; so ky tu mang song can hien thi
@@ -410,27 +412,27 @@ draw PROC ; Draw game screen with border, score, lives, snake and food
         INC DI ; +1 -> di chuyen sang o nho tiep theo
         LOOP livesDisplay ; lap den khi CX = 0
     
-    ; Display player name
+    ; Hiển thị tên người chơi
     ; di chuyen con tro den vi tri mong muon
     MOV AH, 2 ; dinh vi con tro
-    MOV DH, 0 ; dong(row) = 0
-    MOV DL, 35 ; cot(column) = 35
+    MOV DH, 0 ; dong (row) = 0
+    MOV DL, 35 ; cot (column) = 35
     MOV BH, 0 ; trang hien thi = 0 
     INT 10h ; ngat bios video de dinh vi con tro
     
-    ; in ten nguoi chs tai vi tri do
+    ; in ten nguoi choi tai vi tri do
     MOV AH, 9
-    LEA DX, playerName ; nap dia chi ten ng chs vao DX
+    LEA DX, playerName ; nap dia chi ten ngoi choi vao DX
     INT 21h ; goi ngat DOS de in chuoi
     
-    ; Draw snake
-    XOR DX, DX ; dat DX=0 
-    MOV DI, position ; gan vi tri con ran dc spawn
-    MOV DL, snake ; gan ky tu dai dien con ran vao DL
+    ; Vẽ con rắn
+    XOR DX, DX ; dat DX = 0 
+    MOV DI, position ; gan vi tri con ran duoc spawn
+    MOV DL, snake ; gan ky tu than con ran vao DL
     ES: MOV [DI], DL ; ve ky tu con ran len man hinh
     
     ; Draw obstacles ; ve chuong ngai vat - hai thanh ngang
-    ; Above line 1
+    ; line 1 o tren, line 2 o duoi
     MOV CL, len1 ; lay do dai dong vat can 1 vao CL
     MOV DI, line1 ; gan vi tri dong vat can 1 vao DI
     ADD DI, DI ; nhan doi vi moi o ky tu chiem 2 byte trong van ban 
@@ -439,27 +441,27 @@ draw PROC ; Draw game screen with border, score, lives, snake and food
         ES: MOV [DI], AL ; ghi ky tu vat can vao bo nho video
         ADD DI, 2 ; nhay sang o tiep theo (2 byte)
         LOOP draw_obs1 ; lap cho den khi CL = 0
-    ; Below line 2
-    MOV CL, len2 ; lay do dai dong vat can 2 vao CL
-    MOV DI, line2 ; gan vi tri dong vat can 2 vao DI
-    ADD DI, DI ; nhan doi vi moi o ky tu chiem 2 byte trong van ban 
+    ; tuong tu cho dong vat can 2
+    MOV CL, len2 
+    MOV DI, line2
+    ADD DI, DI
     draw_obs2:
-        MOV AL, '#'; dung ky tu # lam vat can
-        ES: MOV [DI], AL ; ghi ky tu vat can vao bo nho video
-        ADD DI, 2 ; nhay sang o tiep theo (2 byte)
-        LOOP draw_obs2 ; lap cho den khi CL = 0
+        MOV AL, '#'
+        ES: MOV [DI], AL
+        ADD DI, 2
+        LOOP draw_obs2
         
     ; Place food
     CALL place_food ; goi ham dat thuc an tren man hinh
     RET ; tro ve sau khi hoan tat ve man hinh
 draw ENDP ; ket thuc thu tuc ve man hinh
 
-; Snake movement procedures ; cac thu tuc di chuyen ran
-; Move left ; di chuyen sang trai
+; Cac thu tuc di chuyen ran
+; di chuyen sang trai
 left PROC
     PUSH DX ; luu gia tri DX (tam thoi)
     CALL shift ; dich chuyen than ran sang huong moi
-    SUB position, 2 ; di chuyen sang trai ( giam 2 byte )
+    SUB position, 2 ; di chuyen sang trai (giam 2 byte)
     
     CALL eat_food ; kiem tra neu dau ran dung vao thuc an
     CALL move_snake ; ve lai ran
@@ -468,11 +470,11 @@ left PROC
     RET    
 ENDP
 
-; Move right ; di chuyen sang phai
+; di chuyen sang phai
 right PROC
     PUSH DX  ; luu gia tri DX (tam thoi)
     CALL shift ; dich chuyen than ran sang huong moi
-    ADD position, 2 ; di chuyen sang phai ( tang 2 byte )
+    ADD position, 2 ; di chuyen sang phai (tang 2 byte)
     
     CALL eat_food ; kiem tra neu dau ran dung vao thuc an
     CALL move_snake ; ve lai ran 
@@ -481,7 +483,7 @@ right PROC
     RET    
 ENDP
 
-; Move up ; di chuyen len tren
+; di chuyen len tren
 up PROC
     PUSH DX ; luu gia tri DX (tam thoi)
     CALL shift ; dich chuyen than ran sang huong moi
@@ -494,7 +496,7 @@ up PROC
     RET    
 ENDP
 
-; Move down
+; di chuyen xuong duoi
 down PROC
     PUSH DX ; luu gia tri DX (tam thoi)
     CALL shift ; dich chuyen than ran sang huong moi
@@ -749,8 +751,8 @@ restart PROC
     MOV snakeLen, 1
     MOV BX, start_position
     MOV position, BX  
-    MOV snake[0], 'O'
-    ; Don't reset the score for restart, keep accumulated score after 3 lives
+    MOV snake[0], '@'
+    ; Giữ lại số điểm, tính điểm tổng sau 3 mạng
     JMP start_again
 ENDP
 
@@ -777,7 +779,7 @@ game_over PROC
     
     
     ; hiển thị restart    
-    MOV DI, (12*80+30)*2.   ; tính vị trí in trên màn hình (hàng 12, cột 30)
+    MOV DI, (12*80+30)*2   ; tính vị trí in trên màn hình (hàng 12, cột 30)
     ; in chuỗi "Restart ? (y / n)" ra màn hình
     LEA SI, endtxt
     MOV CX, 17
@@ -794,7 +796,7 @@ game_over PROC
     MOV snakeLen, 1
     
     option:         
-        MOV AH, 7.          ; đọc một ký tự từ bàn phím nhưng không hiển thị lên màn hình
+        MOV AH, 7          ; đọc một ký tự từ bàn phím nhưng không hiển thị lên màn hình
         INT 21h
         ; nhận được ký tự 'y' thì nhảy đến restart
         CMP AL, 'y'   
@@ -831,8 +833,8 @@ clearall PROC
     RET
 ENDP
 
-; Settings menu
-settings_menu PROC ; Hiển thị menu Settings
+; Hiển thị menu cài đặt
+settings_menu PROC
     CALL clearall
     
     ; Display title         ; Hiển thị tiêu đề menu
@@ -846,7 +848,7 @@ settings_menu PROC ; Hiển thị menu Settings
     LEA DX, settingsTitle   ; Nạp địa chỉ chuỗi tiêu đề vào DX 
     INT 21h                 ; Gọi ngắt DOS để in chuỗi
     
-    ; Display difficulty option ; Hiển thị tuỳ chọn độ khó
+    ; Hiển thị tuỳ chọn độ khó
     MOV AH, 2               ; Đặt vị trí con trỏ
     MOV DH, 8               ; Dòng 8
     MOV DL, 30              ; Cột 30
@@ -856,7 +858,7 @@ settings_menu PROC ; Hiển thị menu Settings
     LEA DX, difficultyOption; Nạp địa chỉ chuỗi "Difficult: " vào DX
     INT 21h                 ; Gọi ngắt DOS để in chuỗi
     
-    ; Display current difficulty ; Hiển thị độ khó hiện tại
+    ; Hiển thị độ khó hiện tại
     MOV AH, 9               ; Hàm INT 21h chức năng 9: In chuỗi kết thúc bằng '$'
     CMP difficultyLevel, 1  
     JE show_easy            ; Nếu difficultyLevel = 1 --> Dễ
@@ -879,7 +881,7 @@ settings_menu PROC ; Hiển thị menu Settings
         INT 21h                  ; Gọi ngắt DOS để in chuỗi
     
     show_controls:
-        ; Display controls info
+        ; Hiển thị thông tin điều khiển
         MOV AH, 2               ; Đặt vị trí con trỏ
         MOV DH, 10              ; Dòng 10
         MOV DL, 25              ; Cột 25
@@ -889,7 +891,7 @@ settings_menu PROC ; Hiển thị menu Settings
         LEA DX, controlsOption  ; Nạp địa chỉ chuỗi 'Controls: WASD to move, ESC for menu' vào thanh ghi DX
         INT 21h                 ; Gọi ngắt DOS để in chuỗi
         
-        ; Display instructions
+        ; Hiển thị hướng dẫn
         MOV AH, 2               ; Đặt vị trí con trỏ
         MOV DH, 12              ; Dòng 12
         MOV DL, 25              ; Cột 25
@@ -905,24 +907,24 @@ settings_menu PROC ; Hiển thị menu Settings
         INT 10h
         ; --> Di chuyển con trỏ đến vị trí (14, 25)             
         
-        ; Display difficulty change option
+        ; Hiển thị tùy chọn thay đổi độ khó
         MOV AH, 9
         LEA DX, changeDiffOption
         INT 21h
         ; --> In ra nội dung chuỗi trong changeDiffOption
 
       settings_input:
-        MOV AH, 0     ; Wait for keypress (blocking)
-        INT 16h       ; Get keypress
+        MOV AH, 0     ; Chờ nhấn phím 
+        INT 16h       ; Lấy phím được nhấn
         
         CMP AL, '1'   
-        JE set_easy        ; Nếu AL = 1 nhảy sang chế độ set_easy
+        JE set_easy        ; Nếu AL = 1 nhảy sang set_easy
         
         CMP AL, '2'
-        JE set_medium      ; Nếu AL = 2 nhảy sang chế độ set_medium
+        JE set_medium      ; Nếu AL = 2 nhảy sang set_medium
         
         CMP AL, '3'
-        JE set_hard        ; Nếu AL = 3 nhảy sang chế độ set_hard
+        JE set_hard        ; Nếu AL = 3 nhảy sang set_hard
         
         CMP AL, 27          
         JE exit_settings   ; Nếu AL = 27 (người dùng nhấn ESC - ASCII = 27) thoát khỏi chế độ settings
@@ -945,12 +947,12 @@ settings_menu PROC ; Hiển thị menu Settings
         RET                    ; Kết thúc thủ tục và quay về chương trình gọi
 settings_menu ENDP ; Kết thúc thủ tục settings_menu
 
-; Delay based on difficulty level
+; Độ trễ dựa trên mức độ khó
 delays PROC
     PUSH CX
     PUSH AX
     
-    ; Check difficulty level
+    ; Kiểm tra mức độ khó
     CMP difficultyLevel, 1
     JE easy_delay
     CMP difficultyLevel, 2
@@ -958,18 +960,18 @@ delays PROC
     JMP hard_delay
     
     easy_delay:
-        MOV CX, 60
+        MOV CX, 60 ; độ trễ lớn
         JMP do_delay
         
     medium_delay:
-        MOV CX, 30
+        MOV CX, 30 ; độ trễ trung bình
         JMP do_delay
         
     hard_delay:
-        MOV CX, 1
+        MOV CX, 1 ; độ trễ nhỏ nhất
         
     do_delay:
-        ; Simple delay loop
+        ; Vòng lặp trễ đơn giản, chạy CX lần
         LOOP do_delay
         
     POP AX
